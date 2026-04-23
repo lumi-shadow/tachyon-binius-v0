@@ -1,7 +1,12 @@
-# Tachyon Frontend
+# Tachyon · Binius v0
 
 A pinned, standalone copy of the **classic Binius (a.k.a. "Binius v0")** Rust workspace,
-maintained as the circuit-construction frontend for the Tachyon GPU prover stack.
+maintained as the circuit-construction *cryptographic frontend* (the M3 arithmetization DSL
+and prover glue) for the Tachyon GPU prover stack.
+
+> "Frontend" here is in the cryptographer's sense — the Rust library that turns a circuit
+> description into an M3 `ConstraintSystem`. The user-facing visual node editor lives in a
+> separate repository, [`lumi-shadow/Tachyon-Frontend`](https://github.com/lumi-shadow/Tachyon-Frontend).
 
 The upstream project ([`IrreducibleOSS/binius`](https://github.com/IrreducibleOSS/binius))
 was archived on 2025-09-09 in favor of [Binius64](https://docs.binius.xyz/binius_frontend/),

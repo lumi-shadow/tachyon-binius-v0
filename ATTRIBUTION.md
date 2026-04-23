@@ -14,8 +14,9 @@ This repository is a derivative work governed by the Apache License, Version 2.0
 
 ## What this repository is
 
-A repackaging of the upstream workspace as **Tachyon Frontend**, intended for use as the
-circuit-construction frontend for the Tachyon GPU prover. The upstream repository was
+A repackaging of the upstream workspace as **Tachyon · Binius v0**, intended for use as
+the circuit-construction *cryptographic frontend* (M3 arithmetization DSL + prover glue)
+for the Tachyon GPU prover stack. The upstream repository was
 archived by its maintainers in favor of [Binius64](https://docs.binius.xyz/binius_frontend/),
 which is a different (incompatible) constraint system; Tachyon depends on the classic
 design that this snapshot preserves.
