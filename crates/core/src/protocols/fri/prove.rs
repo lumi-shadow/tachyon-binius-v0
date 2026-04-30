@@ -8,7 +8,7 @@ use binius_compute::{
 use binius_field::{
 	BinaryField, ExtensionField, PackedExtension, PackedField, TowerField,
 	packed::{iter_packed_slice_with_offset, len_packed_slice},
-	is_packed_field_indexable, PackedFieldIndexable,
+	unpack_if_possible,
 };
 use binius_maybe_rayon::prelude::*;
 use binius_ntt::AdditiveNTT;
@@ -365,13 +365,14 @@ where
 			None => {
 				let codeword_len = len_packed_slice(self.codeword);
 				let mut original_codeword = allocator.alloc(codeword_len)?;
-				if is_packed_field_indexable::<P>() {
-					let scalars = P::unpack_scalars(self.codeword);
-					self.cl.copy_h2d(scalars, &mut original_codeword)?;
-				} else {
-					let scalars = PackedField::iter_slice(self.codeword).collect::<Vec<_>>();
-					self.cl.copy_h2d(&scalars, &mut original_codeword)?;
-				}
+				unpack_if_possible(
+					self.codeword,
+					|scalars| self.cl.copy_h2d(scalars, &mut original_codeword),
+					|packed| {
+						let scalars = PackedField::iter_slice(packed).collect::<Vec<_>>();
+						self.cl.copy_h2d(&scalars, &mut original_codeword)
+					},
+				)?;
 				let mut folded_codeword = allocator.alloc(
 					1 << (self.params.rs_code().log_len()
 						- (self.unprocessed_challenges.len() - self.params.log_batch_size())),
