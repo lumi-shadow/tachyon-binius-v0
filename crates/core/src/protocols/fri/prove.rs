@@ -368,10 +368,7 @@ where
 				unpack_if_possible(
 					self.codeword,
 					|scalars| self.cl.copy_h2d(scalars, &mut original_codeword),
-					|packed| {
-						let scalars = PackedField::iter_slice(packed).collect::<Vec<_>>();
-						self.cl.copy_h2d(&scalars, &mut original_codeword)
-					},
+					|_packed| unimplemented!("non-dense packed fields not supported"),
 				)?;
 				let mut folded_codeword = allocator.alloc(
 					1 << (self.params.rs_code().log_len()
