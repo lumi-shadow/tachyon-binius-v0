@@ -368,7 +368,19 @@ where
 				unpack_if_possible(
 					self.codeword,
 					|scalars| self.cl.copy_h2d(scalars, &mut original_codeword),
-					|_packed| unimplemented!("non-dense packed fields not supported"),
+					|packed| {
+						unimplemented!(
+							"non-dense packed fields not supported: P={} P::WIDTH={} P::LOG_WIDTH={} packed_len={} scalar_len={} rs_code.log_len()={} log_batch_size={} params.log_len()={}",
+							std::any::type_name::<P>(),
+							P::WIDTH,
+							P::LOG_WIDTH,
+							packed.len(),
+							len_packed_slice(packed),
+							self.params.rs_code().log_len(),
+							self.params.log_batch_size(),
+							self.params.log_len(),
+						)
+					},
 				)?;
 				let mut folded_codeword = allocator.alloc(
 					1 << (self.params.rs_code().log_len()
