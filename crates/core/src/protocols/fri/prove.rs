@@ -8,7 +8,7 @@ use binius_compute::{
 use binius_field::{
 	BinaryField, ExtensionField, PackedExtension, PackedField, TowerField,
 	packed::{iter_packed_slice_with_offset, len_packed_slice},
-	is_packed_field_indexable,
+	is_packed_field_indexable, PackedFieldIndexable,
 };
 use binius_maybe_rayon::prelude::*;
 use binius_ntt::AdditiveNTT;
@@ -366,12 +366,7 @@ where
 				let codeword_len = len_packed_slice(self.codeword);
 				let mut original_codeword = allocator.alloc(codeword_len)?;
 				if is_packed_field_indexable::<P>() {
-					let scalars = unsafe {
-						std::slice::from_raw_parts(
-							self.codeword.as_ptr() as *const P::Scalar,
-							self.codeword.len() << P::LOG_WIDTH,
-						)
-					};
+					let scalars = P::unpack_scalars(self.codeword);
 					self.cl.copy_h2d(scalars, &mut original_codeword)?;
 				} else {
 					let scalars = PackedField::iter_slice(self.codeword).collect::<Vec<_>>();
