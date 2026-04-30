@@ -491,11 +491,15 @@ impl<'a, T: TowerFamily, P: PackedTop<T>> ComputeLayerExecutor<T::B128>
 				);
 			},
 			|packed| {
+				// Fallback path used when the destination's packed type is not statically
+				// known to be `PackedFieldIndexable`. The input is `data_in`, not the output
+				// `packed` buffer; previously this branch incorrectly folded the (zeroed)
+				// output buffer in place, producing a length-mismatch panic in the NTT.
 				let mut out_scalars =
 					zeroed_vec(1 << (log_len - (challenges.len() - log_batch_size)));
 				fold_interleaved_allocated(
 					ntt,
-					packed,
+					data_in.as_slice(),
 					challenges,
 					log_len,
 					log_batch_size,

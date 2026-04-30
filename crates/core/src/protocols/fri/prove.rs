@@ -7,8 +7,8 @@ use binius_compute::{
 };
 use binius_field::{
 	BinaryField, ExtensionField, PackedExtension, PackedField, TowerField,
+	is_packed_field_indexable,
 	packed::{iter_packed_slice_with_offset, len_packed_slice},
-	unpack_if_possible,
 };
 use binius_maybe_rayon::prelude::*;
 use binius_ntt::AdditiveNTT;
@@ -365,23 +365,26 @@ where
 			None => {
 				let codeword_len = len_packed_slice(self.codeword);
 				let mut original_codeword = allocator.alloc(codeword_len)?;
-				unpack_if_possible(
-					self.codeword,
-					|scalars| self.cl.copy_h2d(scalars, &mut original_codeword),
-					|packed| {
-						unimplemented!(
-							"non-dense packed fields not supported: P={} P::WIDTH={} P::LOG_WIDTH={} packed_len={} scalar_len={} rs_code.log_len()={} log_batch_size={} params.log_len()={}",
-							std::any::type_name::<P>(),
-							P::WIDTH,
-							P::LOG_WIDTH,
-							packed.len(),
-							len_packed_slice(packed),
-							self.params.rs_code().log_len(),
-							self.params.log_batch_size(),
-							self.params.log_len(),
+				// Some monomorphizations lose the `PackedFieldIndexable` trait bound across
+				// the call chain, so `unpack_if_possible` would fall back to its packed
+				// branch even for densely-laid-out packed types like
+				// `PackedPrimitiveType<M128, B128>`. Branch explicitly here so the borrow of
+				// `original_codeword` does not have to be shared across two closures.
+				if is_packed_field_indexable::<P>() {
+					// SAFETY: `is_packed_field_indexable::<P>()` returning true guarantees
+					// that `&[P]` and `&[P::Scalar]` share the same memory layout up to
+					// length, so reinterpreting the pointer is sound.
+					let scalars = unsafe {
+						std::slice::from_raw_parts(
+							self.codeword.as_ptr() as *const P::Scalar,
+							self.codeword.len() << P::LOG_WIDTH,
 						)
-					},
-				)?;
+					};
+					self.cl.copy_h2d(scalars, &mut original_codeword)?;
+				} else {
+					let scalars = PackedField::iter_slice(self.codeword).collect::<Vec<_>>();
+					self.cl.copy_h2d(&scalars, &mut original_codeword)?;
+				}
 				let mut folded_codeword = allocator.alloc(
 					1 << (self.params.rs_code().log_len()
 						- (self.unprocessed_challenges.len() - self.params.log_batch_size())),
