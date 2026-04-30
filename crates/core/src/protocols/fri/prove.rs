@@ -363,23 +363,23 @@ where
 				folded_codeword
 			}
 			None => {
-				let mut original_codeword = if is_packed_field_indexable::<P>() {
-					let codeword_len = len_packed_slice(self.codeword);
-					let mut original_codeword = allocator.alloc(codeword_len)?;
+				let expected_codeword_len =
+					1 << (self.params.rs_code().log_len() + self.params.log_batch_size());
+				let mut original_codeword = allocator.alloc(expected_codeword_len)?;
+				let mut dense_scalars = vec![F::default(); expected_codeword_len];
+				if is_packed_field_indexable::<P>() {
 					let scalars = unsafe {
 						std::slice::from_raw_parts(
 							self.codeword.as_ptr() as *const P::Scalar,
 							self.codeword.len() << P::LOG_WIDTH,
 						)
 					};
-					self.cl.copy_h2d(scalars, &mut original_codeword)?;
-					original_codeword
+					dense_scalars[..scalars.len()].copy_from_slice(scalars);
 				} else {
 					let scalars = PackedField::iter_slice(self.codeword).collect::<Vec<_>>();
-					let mut original_codeword = allocator.alloc(scalars.len())?;
-					self.cl.copy_h2d(&scalars, &mut original_codeword)?;
-					original_codeword
-				};
+					dense_scalars[..scalars.len()].copy_from_slice(&scalars);
+				}
+				self.cl.copy_h2d(&dense_scalars, &mut original_codeword)?;
 				let mut folded_codeword = allocator.alloc(
 					1 << (self.params.rs_code().log_len()
 						- (self.unprocessed_challenges.len() - self.params.log_batch_size())),
